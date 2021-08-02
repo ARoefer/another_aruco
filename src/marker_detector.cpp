@@ -93,8 +93,8 @@ class MarkerPublisher {
                 double angle = sqrt(rvecs[i].ddot(rvecs[i]));
                 double quat_angle = cos(0);
                 cv::Vec3d quat_axis = cv::Vec3d(0.0);
-                if (angle < 1e-4) {
-                    auto rect_axis  = rvecs[0] / angle;
+                if (angle > 1e-4) {
+                    auto rect_axis  = rvecs[i] / angle;
                     quat_axis  = rect_axis * sin(angle * 0.5);
                     quat_angle = cos(angle * 0.5);
                 }
