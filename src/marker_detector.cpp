@@ -1,4 +1,5 @@
 #include <memory>
+#include <map>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
@@ -21,10 +22,14 @@ class MarkerPublisher {
     double marker_size;
     std::string optical_frame;
     std::unordered_set<int> id_filter;
+    std::unordered_map<int, std::string> id_aliases;
 
     ros::Publisher pub_vis;
     ros::Publisher pub_debug_image;
     ros::Publisher pub_debug_rejected;
+
+    ros::Subscriber sub_image;
+    ros::Subscriber sub_cam_info;
 
     tf2_ros::TransformBroadcaster tf_broadcaster;
 
@@ -32,11 +37,15 @@ class MarkerPublisher {
     cv::Ptr<cv::aruco::DetectorParameters> detector_params;
     cv::Ptr<cv::aruco::Dictionary>         marker_dict;
 
+    size_t _received_images;
+
  public:
     void cb_image(sensor_msgs::ImageConstPtr msg) {
         if (!camera_info)
             return;
         
+        _received_images++;
+
         auto bridge_image = cv_bridge::toCvShare(msg);
 
         std::vector<int> marker_ids;
@@ -59,9 +68,8 @@ class MarkerPublisher {
             marker_corners = filtered_corners;
         }
 
-
         if (!marker_ids.empty()) {
-            cv::Mat camera_matrix(cv::Size(3, 4), CV_64F, const_cast<void*>((const void*)camera_info->P.data()));
+            cv::Mat camera_matrix(cv::Size(3, 3), CV_64F, const_cast<void*>((const void*)camera_info->K.data()));
             cv::Mat dist_coeff(1, (int)camera_info->D.size(), CV_64F, const_cast<void*>((const void*)camera_info->D.data()));
 
             std::vector<cv::Vec3d> rvecs, tvecs;
@@ -92,7 +100,12 @@ class MarkerPublisher {
                 }
 
                 std::stringstream ss;
-                ss << marker_ids[i];
+                auto it = id_aliases.find(marker_ids[i]);
+                if (it != id_aliases.end()) {
+                    ss << it->second;
+                } else {
+                    ss << "aruco_" << marker_ids[i];
+                }
 
                 geometry_msgs::TransformStamped tf_stamped;
                 tf_stamped.header.stamp = ros::Time::now();
@@ -133,29 +146,64 @@ class MarkerPublisher {
         if (!camera_info) {
             camera_info = msg;
             optical_frame = camera_info->header.frame_id;
+            std::cout << "Received camera info."
+                      << "\n   Width: " << camera_info->width
+                      << "\n  Height: " << camera_info->height
+                      << "\n   Frame: " << camera_info->header.frame_id
+                      << std::endl;
         }
     }
     
     MarkerPublisher(double marker_size,
                     cv::aruco::PREDEFINED_DICTIONARY_NAME dict_name,
-                    const std::unordered_set<int>& id_filter)
-        : id_filter(id_filter) {
+                    const std::unordered_set<int>& id_filter,
+                    const std::map<std::string, int>& id_aliases)
+    : nh("~")
+    , id_filter(id_filter)
+    , marker_size(marker_size)
+    , _received_images(0) {
         detector_params = cv::aruco::DetectorParameters::create();
         marker_dict = cv::aruco::getPredefinedDictionary(dict_name);
 
-        // pub_vis            = nh.advertise<visualization_msgs::Marker>("~visualization", 5);
-        pub_debug_image    = nh.advertise<sensor_msgs::Image>("~debug_markers", 1);
-        pub_debug_rejected = nh.advertise<sensor_msgs::Image>("~debug_rejected", 1);
+        for (auto it : id_aliases) {
+            if (this->id_aliases.find(it.second) != this->id_aliases.end()) {
+                printf("Duplicate alias for marker id %d. Skipping new alias."
+                       "\n  Current alias: %s"
+                       "\n      New alias: %s\n", it.second, this->id_aliases.find(it.second)->second.c_str(), it.first.c_str());
+                continue;
+            }
 
-        nh.subscribe("/camera_info", 1, &MarkerPublisher::cb_camera_info, this);
-        nh.subscribe("/image_rect",  1, &MarkerPublisher::cb_image,       this);
+            this->id_aliases[it.second] = it.first;
+        }
+
+        // If we're using a white-list, the aliased Ids get added automatically
+        if (this->id_filter.size() != 0) {
+            for (auto it = this->id_aliases.cbegin(); it != this->id_aliases.cend(); it++)
+                this->id_filter.insert(it->first);
+        }
+
+        // pub_vis            = nh.advertise<visualization_msgs::Marker>("~visualization", 5);
+        pub_debug_image    = nh.advertise<sensor_msgs::Image>("debug_markers", 1);
+        pub_debug_rejected = nh.advertise<sensor_msgs::Image>("debug_rejected", 1);
+
+        sub_cam_info = nh.subscribe("/camera_info", 1, &MarkerPublisher::cb_camera_info, this);
+        sub_image    = nh.subscribe("/image_rect",  1, &MarkerPublisher::cb_image,       this);
+
+        std::cout << "Marker white list:";
+        for (auto id : this->id_filter)
+            std::cout << ' ' << id;
+        
+        std::cout << "\nMarker aliases:";
+        for (const auto it : this->id_aliases)
+            std::cout << "\n  " << it.first << ": " << it.second;
+        std::cout << std::endl;
     }
 };
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "another_aruco_detector");
-    ros::NodeHandle nh;
+    ros::init(argc, argv, "aruco_publisher");
+    ros::NodeHandle nh("~");
 
     std::unordered_map<std::string, cv::aruco::PREDEFINED_DICTIONARY_NAME> dict_names {
         {"DICT_4X4_50",         cv::aruco::DICT_4X4_50},
@@ -178,10 +226,10 @@ int main(int argc, char** argv) {
     };
 
     double marker_size;
-    nh.param<double>("~marker_size", marker_size, 0.08);
+    nh.param<double>("marker_size", marker_size, 0.08);
     std::string marker_dict;
     cv::aruco::PREDEFINED_DICTIONARY_NAME dict_name = cv::aruco::DICT_4X4_50;
-    if (nh.getParam("~marker_dict", marker_dict)) {
+    if (nh.getParam("marker_dict", marker_dict)) {
         auto it = dict_names.find(marker_dict);
         if (it == dict_names.end()) {
             std::cerr << "Unknown dict name \"" << marker_dict << "\" terminating node" << std::endl;
@@ -192,10 +240,15 @@ int main(int argc, char** argv) {
     }
 
     std::vector<int> id_filter_list;
-    nh.getParam("~id_filter", id_filter_list);
+    nh.getParam("id_filter", id_filter_list);
     std::unordered_set<int> id_filter(id_filter_list.begin(), id_filter_list.end());
 
-    MarkerPublisher(marker_size, dict_name, id_filter);
+    std::map<std::string, int> id_aliases;
+    nh.getParam("id_aliases", id_aliases);
+
+    auto publisher = MarkerPublisher(marker_size, dict_name, id_filter, id_aliases);
+
+    std::cout << "Aruco marker detector is started" << std::endl;
 
     ros::spin();
 }
