@@ -1,0 +1,15 @@
+<launch>
+    <arg name="marker_size" default="0.092"/>
+    <arg name="marker_dict" default="DICT_4X4_50"/>
+    <arg name="white_list"  default=""/>
+    <arg name="aliases"     default=""/>
+
+    <node name="aruco_publisher"  pkg="another_aruco" type="marker_detector" output="screen">
+        <remap from="/camera_info" to="/kinect2/hd/camera_info"/>
+        <remap from="/image_rect"  to="/kinect2/hd/image_color_rect"/>
+        <param name="marker_size" type="double"  value="$(arg marker_size)"/>
+        <param name="marker_dict" type="string" value="$(arg marker_dict)"/>
+        <param name="id_filter"  type="yaml" value="$(arg white_list)" if="$(eval arg('white_list') != '')"/>
+        <param name="id_aliases" type="yaml" value="$(arg aliases)" if="$(eval arg('aliases') != '')"/>
+    </node>
+</launch>
