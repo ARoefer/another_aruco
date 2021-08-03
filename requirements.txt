@@ -1,0 +1,2 @@
+jinja2
+opencv-contrib-python

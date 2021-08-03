@@ -8,6 +8,8 @@ For this, it requires one `sensor_msgs/CameraInfo` topic publishing the camera c
 It is assumed that the camera info contains the correct camera optical frame Id.
 In addition to it's basic functionality, the node provides two debugging outputs which visualize the detected markers and also the rejected candidates. These topics are called `~debug_markers`, `debug_rejected`.
 
+In addition to tracking markers, the package also contains a script which can be used to generate pdf files containing markers for print. Just run `scripts/marker_generator.py --help` to get instructions on how to use the generator.
+
 ## How to Build
 
 This should build out of the box under ROS `melodic` and higher, as long as you have OpenCV installed.
