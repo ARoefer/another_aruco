@@ -1,4 +1,6 @@
-# another_aruco, 
+# Another Aruco Tracking Package
+![Logo](res/logo.png)
+
 It's not like there aren't enough aruco marker tracking systems out there, but the latest ROS one doesn't seem to work, so here's mine.
 
 ## What does it do?
