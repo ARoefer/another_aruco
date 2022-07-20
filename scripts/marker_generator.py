@@ -64,7 +64,7 @@ if __name__ == '__main__':
 		img = marker_dict.drawMarker(i, marker_dict.markerSize + 2, borderBits=1)
 		img_path = f'{args.dict}_{i}.png'
 		cv2.imwrite(img_path, img)
-		items.append(RowItem(img_path, i))
+		items.append(RowItem('{' + img_path + '}', i))
 
 	bit_width = args.marker_width / (marker_dict.markerSize + 2)
 	items_per_row = int(paper_width // (args.marker_width + 2*bit_width))
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
 	print('Done generating pdf. Removing temporary files...')
 	for item in sum(rows, []):
-		os.remove(item.img)
+		os.remove(item.img[1:-1])
 
 	os.remove(f'{args.filename}.tex')
 	os.remove(f'{args.filename}.aux')

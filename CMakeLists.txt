@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2
   cv_bridge
+  kineverse_experiment_world
 )
 
 ## System dependencies are found with CMake's conventions

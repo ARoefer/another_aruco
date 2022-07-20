@@ -27,7 +27,7 @@
   \begin{tikzpicture}
   \draw (0, 0) -- ({{ box_width }}cm, 0) -- ({{ box_width }}cm, {{ box_width }}cm) -- (0, {{ box_width }}cm) -- cycle;
   \node[inner sep=0pt] at ( {{ img_offset }}cm, {{ img_offset }}cm )
-    {\includegraphics[width={{ img_width }}cm]{ {{ item.img }} } };
+    {\includegraphics[width={{ img_width }}cm]{{ item.img }} };
   \draw[->, color=lightgray] (0.5*{{ box_border }}cm, 0.5*{{ box_border }}cm) -- ({{ box_border }}cm, 0.5*{{ box_border }}cm) node[anchor=west] {x};
   \draw[->, color=lightgray] (0.5*{{ box_border }}cm, 0.5*{{ box_border }}cm) -- (0.5*{{ box_border }}cm, {{ box_border }}cm) node[anchor=south] {y};
   \node[anchor=north west, text=lightgray] at (0,{{ box_width }}cm) { {{ item.id }} };
