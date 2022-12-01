@@ -13,7 +13,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
 #include <visualization_msgs/Marker.h>
-#include <kineverse_experiment_world/TransformStampedArray.h>
+#include <another_aruco/TransformStampedArray.h>
 
 
 class MarkerPublisher {
@@ -126,7 +126,7 @@ class MarkerPublisher {
             tf_broadcaster.sendTransform(tfs_to_publish);
             
             if (pub_obs.getNumSubscribers() > 0) {
-                kineverse_experiment_world::TransformStampedArray obs_msg;
+                another_aruco::TransformStampedArray obs_msg;
                 obs_msg.transforms = tfs_to_publish;
                 pub_obs.publish(obs_msg);
             }
@@ -191,7 +191,7 @@ class MarkerPublisher {
         }
 
         // pub_vis            = nh.advertise<visualization_msgs::Marker>("~visualization", 5);
-        pub_obs            = nh.advertise<kineverse_experiment_world::TransformStampedArray>("detections", 1);
+        pub_obs            = nh.advertise<another_aruco::TransformStampedArray>("detections", 1);
         pub_debug_image    = nh.advertise<sensor_msgs::Image>("debug_markers", 1);
         pub_debug_rejected = nh.advertise<sensor_msgs::Image>("debug_rejected", 1);
 
