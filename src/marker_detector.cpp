@@ -81,7 +81,7 @@ class MarkerPublisher {
     
             cv_bridge::CvImagePtr debug_img;
             if (pub_debug_image.getNumSubscribers() > 0) {
-                debug_img = cv_bridge::toCvCopy(msg);
+                debug_img = cv_bridge::toCvCopy(msg, "bgr8");
                 cv::aruco::drawDetectedMarkers(debug_img->image, marker_corners, marker_ids);
             }
 
